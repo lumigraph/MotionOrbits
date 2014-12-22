@@ -23,13 +23,21 @@
 #include "OrbitGraph.h"
 #include "Character.h"
 
+/*
+#define PATH_BVH	"../data/boxing/boxing_shadow_m_edit.bvh"
+#define PATH_GRAPH	"../data/boxing/graph.txt"
+#define PATH_ORBIT	"../data/boxing/orbit.txt"
+*/
+/*
+#define PATH_BVH	"../data/basketball/basketball.bvh"
+#define PATH_GRAPH	"../data/basketball/graph.txt"
+#define PATH_ORBIT	"../data/basketball/orbit.txt"
+*/
 
-//#define PATH_BVH	"../data/boxing/boxing_shadow_m_edit.bvh"
 #define PATH_BVH	"../data/b-boy/B_boy.bvh"
-//#define PATH_BVH	"../data/basketball/shooting.bvh"
-
 #define PATH_GRAPH	"../data/b-boy/graph.txt"
 #define PATH_ORBIT	"../data/b-boy/orbit.txt"
+
 
 //
 static void initialize();
@@ -146,7 +154,11 @@ void startOrbitPlayer( int* argcp, char** argv )
 
 static void calcOrbitEnergyLevels()
 {
-	unsigned int pelvis_index = motion_data.getSkeleton()->getHumanJoint( Human::PELVIS )->getIndex();
+	unsigned int pelvis = motion_data.getSkeleton()->getHumanJoint( Human::PELVIS )->getIndex();
+	unsigned int lhand = motion_data.getSkeleton()->getHumanJoint( Human::LEFT_PALM )->getIndex();
+	unsigned int rhand = motion_data.getSkeleton()->getHumanJoint( Human::RIGHT_PALM )->getIndex();
+	unsigned int lfoot = motion_data.getSkeleton()->getHumanJoint( Human::LEFT_FOOT )->getIndex();
+	unsigned int rfoot = motion_data.getSkeleton()->getHumanJoint( Human::RIGHT_FOOT )->getIndex();
 
 	std::vector< OrbitGraph::Node* >* orbits = orbit_graph.getNodeList();
 	std::vector< OrbitGraph::Node* >::iterator itor_o = orbits->begin();
@@ -167,12 +179,28 @@ static void calcOrbitEnergyLevels()
 			unsigned int f1 = segment.first;
 			unsigned int fN = segment.second;
 		
+			/*
 			for( unsigned int f=f1; f <= fN; f++ )
 			{
-				math::vector v = motion_data.getLinearVelocity( f, pelvis_index );
-				float s = v.length();
-				e += s * s;
+				math::vector v_p = motion_data.getLinearVelocity( f, pelvis );
+				math::vector v_lh = motion_data.getLinearVelocity( f, lhand );
+				math::vector v_rh = motion_data.getLinearVelocity( f, rhand );
+				math::vector v_lf = motion_data.getLinearVelocity( f, lfoot );
+				math::vector v_rf = motion_data.getLinearVelocity( f, rfoot );
+
+				float sp = v_p.length();
+				float slh = v_lh.length();
+				float srh = v_rh.length();
+				float slf = v_lf.length();
+				float srf = v_rf.length();
+
+				e += ( sp*sp + slh*slh + srh*srh + slf*slf + srf*srf );
 			}
+			*/
+			math::vector disp = 
+				motion_data.getGlobalTransform( f1, pelvis ).translation 
+				- motion_data.getGlobalTransform( fN, pelvis ).translation;
+			e += disp.length();
 			len += ( fN-f1+1 );
 		}
 		orbit_energy_levels.push_back( e / (float)len );
@@ -187,7 +215,6 @@ void initialize()
 
 	//setupBoxingSkeleton( motion_data.getSkeleton() );
 	setupBboySkeleton( motion_data.getSkeleton() );
-	//setupCMU14Skeleton( motion_data.getSkeleton() );
 	//setupBasketballSkeleton( motion_data.getSkeleton() );
 
 	//
@@ -468,6 +495,7 @@ void keyboard( unsigned char key, int x, int y )
 		{
 			if( moving_mode == CYCLING_IN_ORBIT )
 			{
+				/*
 				unsigned int min_dist = (unsigned int)-1;
 				OrbitGraph::Edge* min_edge = 0;
 
@@ -486,13 +514,12 @@ void keyboard( unsigned char key, int x, int y )
 					}
 				}
 				current_transit = min_edge;
+				*/
 				
-				/*
 				std::vector< OrbitGraph::Edge* >* next_edges = current_orbit->getNextEdges();
 				unsigned int num_next_edges = (unsigned int)next_edges->size();
 				unsigned int edge_index = rand() % num_next_edges;
 				current_transit = ( *next_edges )[ edge_index ];
-				*/
 
 				moving_mode = LEAVING_FROM_ORBIT;
 			}
@@ -500,6 +527,7 @@ void keyboard( unsigned char key, int x, int y )
 		break;
 	case 13:	// enter
 		{
+			character.place( 0, 0, 0 );
 		}
 		break;
 	case 32:	// space
@@ -526,8 +554,7 @@ void special( int key, int x, int y )
 				unsigned int from_node_index = orbit_graph.getNodeIndex( current_orbit );
 				float from_node_energy = orbit_energy_levels[ from_node_index ];
 
-				float max_diff = -FLT_MAX;
-				OrbitGraph::Edge* max_diff_edge = 0;
+				std::vector< OrbitGraph::Edge* > candidate_edges;
 
 				std::vector< OrbitGraph::Edge* >* next_edges = current_orbit->getNextEdges();
 				std::vector< OrbitGraph::Edge* >::iterator itor_e = next_edges->begin();
@@ -536,38 +563,31 @@ void special( int key, int x, int y )
 					OrbitGraph::Edge* edge = ( *itor_e ++ );
 					if( edge->getFromNode() == edge->getToNode() )	continue;
 
-					unsigned int edge_len = edge->getPathLength();
-					float effort = (float)( edge_len * edge_len );
-
 					unsigned int to_node_index = orbit_graph.getNodeIndex( edge->getToNode() );
 					float to_node_energy = orbit_energy_levels[ to_node_index ];
-
-					float e_diff = -FLT_MAX;
 
 					if( key == GLUT_KEY_LEFT || key == GLUT_KEY_DOWN )
 					{
 						if( to_node_energy < from_node_energy )
 						{
-							e_diff = ( from_node_energy - to_node_energy ) / effort;
+							candidate_edges.push_back( edge );
 						}
 					}
 					else
 					{
 						if( to_node_energy > from_node_energy )
 						{
-							e_diff = ( to_node_energy - from_node_energy ) / effort;
+							candidate_edges.push_back( edge );
 						}
-					}
-					if( e_diff > max_diff )
-					{
-						max_diff = e_diff;
-						max_diff_edge = edge;
 					}
 				}
 
-				if( max_diff > -FLT_MAX )
+				if( !candidate_edges.empty() )
 				{
-					current_transit = max_diff_edge;
+					unsigned int num_edges = (unsigned int)candidate_edges.size();
+					unsigned int index = rand() % num_edges;
+
+					current_transit = candidate_edges[ index ];
 					moving_mode = LEAVING_FROM_ORBIT;
 				}
 			}

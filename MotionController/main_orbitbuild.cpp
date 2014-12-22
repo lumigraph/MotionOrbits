@@ -14,14 +14,23 @@
 #include "MotionGraph.h"
 #include "OrbitGraph.h"
 
-//#define PATH_BVH	"data/boxing/boxing_shadow_m_edit.bvh"
-//#define PATH_BVH	"../data/basketball/shooting.bvh"
+/*
+#define PATH_BVH	"../data/boxing/boxing_shadow_m_edit.bvh"
+#define PATH_GRAPH	"../data/boxing/graph.txt"
+#define PATH_ORBIT	"../data/boxing/orbit.txt"
+*/
 
+#define PATH_BVH	"../data/basketball/basketball.bvh"
+#define PATH_GRAPH	"../data/basketball/graph.txt"
+#define PATH_ORBIT	"../data/basketball/orbit.txt"
+
+/*
 #define PATH_BVH	"../data/b-boy/B_boy.bvh"
 #define PATH_GRAPH	"../data/b-boy/graph.txt"
 #define PATH_ORBIT	"../data/b-boy/orbit.txt"
+*/
 
-#define MIN_CYCLE_SIZE	3
+#define MIN_CYCLE_SIZE	0
 #define MAX_CYCLE_SIZE	10
 
 extern void setupBboySkeleton( Skeleton* s );
@@ -38,7 +47,10 @@ void startOrbitBuilder( int* argcp, char** argv )
 		std::cout << "ERROR: failed to load motion" << std::endl;
 		return;
 	}
-	setupBboySkeleton( motion_data.getSkeleton() );
+
+//	setupBboySkeleton( motion_data.getSkeleton() );
+//	setupBoxingSkeleton( motion_data.getSkeleton() );
+	setupBasketballSkeleton( motion_data.getSkeleton() );
 
 	MotionGraph motion_graph;
 	bool is_graph_loaded = motion_graph.load( PATH_GRAPH );

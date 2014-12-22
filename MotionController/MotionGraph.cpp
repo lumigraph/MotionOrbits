@@ -814,13 +814,13 @@ bool MotionGraph::CIRCUIT( unsigned int s, unsigned int v, AdjListT& A, AdjListT
 		}
 		else
 		{
-			 if( !blocked[w] )
-			 {
-				 if( CIRCUIT( s, w, A, B, node_stack, blocked ) )
-				 {
-					 f = true;
-				 }
-			 }
+				if( !blocked[w] )
+				{
+					if( CIRCUIT( s, w, A, B, node_stack, blocked ) )
+					{
+						f = true;
+					}
+				}
 		}
 	}
 
@@ -922,4 +922,120 @@ void MotionGraph::enumerateAllCycles()
 			B[j].clear();
 		}
 	}
+}
+
+void MotionGraph::sampleRandomCycles( unsigned int n, unsigned int max_len )
+{
+	unsigned int num_nodes = getNumNodes();
+	if( max_len > num_nodes )
+	{
+		return;
+	}
+
+	unsigned int k;
+	for( k=0; k < n; k++ )
+	{
+		bool is_cycle_found = false;
+
+		while( !is_cycle_found )
+		{
+			unsigned int start_index = rand() % num_nodes;
+			MotionGraph::Node* start_node = getNode( start_index );
+
+			std::vector< MotionGraph::Node* > stack_nodes;
+			is_cycle_found = sampleRandomCycleFrom( start_node, &stack_nodes, max_len );
+
+			if( is_cycle_found )
+			{
+				std::cout << "- cycle[" << k << "] is found: ";
+
+				std::vector< unsigned int >* cycle = new std::vector< unsigned int >;
+				std::vector< Node* >::iterator itor_sn = stack_nodes.begin();
+				while( itor_sn != stack_nodes.end() )
+				{
+					Node* node = ( *itor_sn ++ );
+					unsigned int index = getNodeIndex( node );
+					cycle->push_back( index );
+
+					std::cout << index << " ";
+				}
+				cycle_list.push_back( cycle );
+
+				std::cout << std::endl;
+			}
+			else
+			{
+				std::cout << "- cycle[" << k << "] is not found" << std::endl;
+			}
+		}
+	}
+}
+
+bool MotionGraph::sampleRandomCycleFrom( Node* start_node, std::vector< Node* >* stack_nodes, unsigned int max_len )
+{
+	if( !stack_nodes->empty() )
+	{
+		bool is_crossed = false;
+		std::vector< Node* >::iterator itor_sn = stack_nodes->begin();
+		while( itor_sn != stack_nodes->end() )
+		{
+			Node* stack_node = ( *itor_sn );
+			if( start_node == stack_node )
+			{
+				is_crossed = true;
+				break;
+			}
+			itor_sn ++;
+		}
+
+		if( is_crossed )
+		{
+			if( itor_sn == stack_nodes->begin() )
+			{
+				return true;
+			}
+			else
+			{
+				return false;
+			}
+		}
+	}
+
+	if( max_len == 0 )
+	{
+		return false;
+	}
+
+	//
+	stack_nodes->push_back( start_node );
+
+	//
+	std::vector< Node* > adj_nodes;
+	std::vector< Edge* >* adj_edges = start_node->getNextEdges();
+	std::vector< Edge* >::iterator itor_e = adj_edges->begin();
+	while( itor_e != adj_edges->end() )
+	{
+		Edge* adj_edge = ( *itor_e ++ );
+		Node* adj_node = adj_edge->getToNode();
+		adj_nodes.push_back( adj_node );
+	}
+	std::random_shuffle( adj_nodes.begin(), adj_nodes.end() );
+
+	//
+	std::vector< Node* >::iterator itor_an = adj_nodes.begin();
+	while( itor_an != adj_nodes.end() )
+	{
+		Node* adj_node = ( *itor_an ++ );
+
+		bool is_cycle_found = sampleRandomCycleFrom( adj_node, stack_nodes, max_len-1 );
+		if( is_cycle_found )
+		{
+			return true;
+		}
+	}
+
+	//
+	stack_nodes->pop_back();
+
+	return false;
 }

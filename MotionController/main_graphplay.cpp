@@ -28,15 +28,18 @@
 
 #include "Character.h"
 
+/*
+#define PATH_BVH	"../data/boxing/boxing_shadow_m_edit.bvh"
+#define PATH_GRAPH	"../data/boxing/graph.txt"
+*/
 
-//#define PATH_BVH	"../data/boxing/boxing_shadow_m_edit.bvh"
+#define PATH_BVH	"../data/basketball/basketball.bvh"
+#define PATH_GRAPH	"../data/basketball/graph.txt"
+
+/*
 #define PATH_BVH	"../data/b-boy/B_boy.bvh"
-//#define PATH_BVH	"../data/basketball/shooting.bvh"
-
 #define PATH_GRAPH	"../data/b-boy/graph.txt"
-#define PATH_CYCLES	"../data/b-boy/cycle%d.txt"
-#define NUM_CYCLES	1990
-
+*/
 
 //
 static void initialize();
@@ -163,9 +166,9 @@ void initialize()
 	motion_graph.load( PATH_GRAPH );
 	
 	//setupBoxingSkeleton( motion_data.getSkeleton() );
-	setupBboySkeleton( motion_data.getSkeleton() );
+	//setupBboySkeleton( motion_data.getSkeleton() );
 	//setupCMU14Skeleton( motion_data.getSkeleton() );
-	//setupBasketballSkeleton( motion_data.getSkeleton() );
+	setupBasketballSkeleton( motion_data.getSkeleton() );
 
 	/*
 	int i;

@@ -258,12 +258,16 @@ public:
 	bool removeEdges( Node* from_node, Node* to_node );
 	bool hasEdge( Edge* edge );
 
-	void decompose();	
+	void decompose();
 	void removeAllComponents();
 
 	void enumerateAllCycles();
 	void removeAllCycles();
 	void sortCycles();
+
+	void sampleRandomCycles( unsigned int n, unsigned int max_len );
+	bool sampleRandomCycleFrom( Node* start_node, std::vector< Node* >* stack_nodes, unsigned int max_len );
+	void removeRedundantCycles();
 
 	bool findPath( Node* from_node, Node* to_node, std::deque< Node* >* path );
 

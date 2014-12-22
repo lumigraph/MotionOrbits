@@ -23,8 +23,8 @@
 #include "PoseIK.h"
 
 //#define PATH_BVH	"../data/boxing/boxing_shadow_m_edit.bvh"
-#define PATH_BVH	"../data/b-boy/B_boy.bvh"
-//#define PATH_BVH	"../data/basketball/shooting.bvh"
+//#define PATH_BVH	"../data/b-boy/B_boy.bvh"
+#define PATH_BVH	"../data/basketball/basketball.bvh"
 
 //
 static void initialize();
@@ -136,6 +136,7 @@ void startBVHPlayer( int* argcp, char** argv )
 	glutMouseFunc( mouse );
 	glutMotionFunc( motion );
 	glutTimerFunc( time_interval, timer, 1 );
+	glutIdleFunc( idle );
 	
 	glutMainLoop();
 } 
@@ -212,9 +213,9 @@ void initialize()
 	motion_data.importFromBVH( PATH_BVH );
 	
 	//setupBoxingSkeleton( motion_data.getSkeleton() );
-	setupBboySkeleton( motion_data.getSkeleton() );
+	//setupBboySkeleton( motion_data.getSkeleton() );
 	//setupCMU14Skeleton( motion_data.getSkeleton() );
-	//setupBasketballSkeleton( motion_data.getSkeleton() );
+	setupBasketballSkeleton( motion_data.getSkeleton() );
 
 	//
 	segmentMotion();
@@ -418,6 +419,10 @@ void display()
 
 void timer( int timer_id )
 {
+}
+
+void idle()
+{
 	static unsigned int count = 0;
 
 	if( is_playing )
@@ -442,7 +447,6 @@ void timer( int timer_id )
 		}
 		count ++;
 	}
-	glutTimerFunc( time_interval, timer, timer_id );
 }
 
 void keyboard( unsigned char key, int x, int y )

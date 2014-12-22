@@ -18,15 +18,30 @@
 #include "PoseData.h"
 #include "PoseIK.h"
 
-//#define PATH_BVH	"data/boxing/boxing_shadow_m_edit.bvh"
-//#define PATH_BVH	"../data/basketball/shooting.bvh"
+/*
+#define PATH_BVH	"../data/boxing/boxing_shadow_m_edit.bvh"
+#define PATH_GRAPH	"../data/boxing/graph.txt"
 
-#define PATH_BVH	"../data/b-boy/B_boy.bvh"
-#define PATH_GRAPH	"../data/b-boy/graph.txt"
-#define PATH_CYCLES	"../data/b-boy/cycle%d.txt"
+#define MIN_SEGMENT_LENGTH	20
+#define MAX_POSE_DISTANCE	2.5f
+#define MAX_ROOT_DISTANCE	10.0f
+*/
+
+#define PATH_BVH	"../data/basketball/basketball.bvh"
+#define PATH_GRAPH	"../data/basketball/graph.txt"
 
 #define MIN_SEGMENT_LENGTH	20
 #define MAX_POSE_DISTANCE	3.0f
+#define MAX_ROOT_DISTANCE	20.0f
+
+/*
+#define PATH_BVH	"../data/b-boy/B_boy.bvh"
+#define PATH_GRAPH	"../data/b-boy/graph.txt"
+
+#define MIN_SEGMENT_LENGTH	20
+#define MAX_POSE_DISTANCE	3.0f
+#define MAX_ROOT_DISTANCE	10.0f
+*/
 
 
 void segmentMotion( SkeletalMotion* motion_data, std::vector< MotionSegment* >* segment_list );
@@ -54,8 +69,12 @@ void startGraphBuilder( int* argcp, char** argv )
 		std::cout << "ERROR: failed to load motion" << std::endl;
 		return;
 	}
-	setupBboySkeleton( motion_data.getSkeleton() );
 
+//	setupBboySkeleton( motion_data.getSkeleton() );
+//	setupBoxingSkeleton( motion_data.getSkeleton() );
+	setupBasketballSkeleton( motion_data.getSkeleton() );
+
+	/*
 	// (1) segmentation
 	std::cout << "[1] segmentation" << std::endl;
 
@@ -90,22 +109,25 @@ void startGraphBuilder( int* argcp, char** argv )
 	std::cout << "- # of nodes = " << (int)connected_graph.getNumNodes() << std::endl;
 	std::cout << "- # of edges = " << (int)connected_graph.getNumEdges() << std::endl << std::endl;
 
+	connected_graph.save( PATH_GRAPH );
+	return;
+	*/
+	
+	MotionGraph connected_graph;
+	connected_graph.load( PATH_GRAPH );
+
 	// (5) enumerate all elementary circuits from the leargest component
 	std::cout << "[5] cycle enumeration" << std::endl;
-	connected_graph.enumerateAllCycles();
+//	connected_graph.enumerateAllCycles();
+	connected_graph.removeAllCycles();
+	connected_graph.sampleRandomCycles( 100, 3 );
 	connected_graph.sortCycles();
 
-	/*
-	std::vector< MotionGraph* > cycle_list;
-	enumerateCycles( &connected_graph, &cycle_list );
-	*/
 
 	// (6) export each circuit into a graph with the asceding order of its size
 	std::cout << "[6] exporting graph and cycles" << std::endl;
 	connected_graph.save( PATH_GRAPH );
-
-	// (7) and later, merge circuits iteratively with the connectable paths from the original graph
-
+	
 }
 
 void segmentMotion( SkeletalMotion* motion_data, std::vector< MotionSegment* >* segment_list )
@@ -193,53 +215,69 @@ void segmentMotion( SkeletalMotion* motion_data, std::vector< MotionSegment* >* 
 
 void initializeGraph( SkeletalMotion* motion_data, std::vector< MotionSegment* >* segment_list, MotionGraph* motion_graph )
 {
+	unsigned int root_index = motion_data->getHumanJoint( Human::PELVIS )->getIndex();
+	
 	motion_graph->initialize();
 
-	MotionGraph::Node* prev_node = 0;
 	std::vector< MotionSegment* >::iterator itor_s = segment_list->begin();
 	while( itor_s != segment_list->end() )
 	{
 		MotionSegment* segment = ( *itor_s ++ );
-		
-		MotionGraph::Node* node = motion_graph->addNode();
-		node->addSegment( segment->getStartFrame(), segment->getEndFrame() );
 
-		if( prev_node )
+		unsigned int f1 = segment->getStartFrame();
+		unsigned int fN = segment->getEndFrame();
+
+		bool is_continuous = true;
+		for( unsigned int f=f1; f < fN; f++ )
 		{
-			int prev_fN = prev_node->getSegment(0).second;
-			int curr_f1 = node->getSegment(0).first;
+			unsigned int curr_f = f;
+			unsigned int next_f = f+1;
 
-			if( prev_fN + 1 == curr_f1 )
+			math::vector curr_t = motion_data->getGlobalTransform( curr_f, root_index ).translation;
+			math::vector next_t = motion_data->getGlobalTransform( next_f, root_index ).translation;
+
+			double pose_dist = SkeletalMotion::calcDistance( motion_data, curr_f, motion_data, next_f );
+			double root_dist = math::vector( next_t-curr_t ).length();
+
+			if( pose_dist > MAX_POSE_DISTANCE ||  root_dist > MAX_ROOT_DISTANCE )
 			{
-				motion_graph->addEdge( prev_node, node );
+				is_continuous = false;
+				break;
 			}
 		}
-		prev_node = node;
+
+		if( is_continuous )
+		{		
+			std::cout << "- node[" << motion_graph->getNumNodes() << "] is created: " << f1 << "-" << fN << std::endl;
+		
+			MotionGraph::Node* node = motion_graph->addNode();
+			node->addSegment( f1, fN );
+		}
 	}
+	std::cout << std::endl;
 }
 
 void interweaveGraph( SkeletalMotion* motion_data, MotionGraph* motion_graph )
 {
 	std::vector< MotionGraph::Node* >* node_list = motion_graph->getNodeList();
 
-	int i = 0;
-
 	std::vector< MotionGraph::Node* >::iterator itor_n1 = node_list->begin();
 	while( itor_n1 != node_list->end() )
 	{
 		MotionGraph::Node* node1 = ( *itor_n1 ++ );
+		unsigned int i = motion_graph->getNodeIndex( node1 );
 
 		std::vector< std::pair<unsigned int, unsigned int> >* segments1 = node1->getSegments();
 		unsigned int s1 = ( *segments1 )[0].first;
 		unsigned int e1 = ( *segments1 )[0].second;
 
-		int j = 0;
-
 		std::vector< MotionGraph::Node* >::iterator itor_n2 = node_list->begin();
 		while( itor_n2 != node_list->end() )
 		{
 			MotionGraph::Node* node2 = ( *itor_n2 ++ );
-			if( i == j )
+			unsigned int j = motion_graph->getNodeIndex( node2 );
+
+			if( node1 == node2 )
 			{
 				continue;
 			}
@@ -255,12 +293,14 @@ void interweaveGraph( SkeletalMotion* motion_data, MotionGraph* motion_graph )
 			double dist = SkeletalMotion::calcDistance( motion_data, e1, motion_data, s2 );
 			if( dist < MAX_POSE_DISTANCE )
 			{
+				std::cout << "- node[" << i << "] and node[" << j << "] are connected" << std::endl;
+
 				motion_graph->addEdge( node1, node2 );
 			}
-			j ++;
 		}
-		i ++;
 	}
+
+	std::cout << std::endl;
 }
 
 void leaveLargestSCC( MotionGraph* original_graph, MotionGraph* purified_graph )
@@ -470,6 +510,7 @@ void exportMotionGraph( MotionGraph* motion_graph )
 	motion_graph->save( PATH_GRAPH );
 }
 
+/*
 void exportGraphCycles( std::vector< MotionGraph* >* graph_cycles )
 {
 	int num_cycles = (int)graph_cycles->size(), i;
@@ -484,3 +525,4 @@ void exportGraphCycles( std::vector< MotionGraph* >* graph_cycles )
 		cycle->save( path_cycle );
 	}
 }
+*/
