@@ -1,6 +1,9 @@
 #include "DrawingTool.h"
 #include "mathclass/matrix.h"
+
+#include "Skeleton.h"
 #include "Joint.h"
+#include "PoseData.h"
 
 #include <GL/glut.h>
 
@@ -248,6 +251,31 @@ void DrawingTool::drawPose( SkeletalMotion* motion, unsigned int f, float thickn
 			unsigned int j = parent->getIndex();
 			math::position pj(0,0,0);
 			math::transq tj = motion->getGlobalTransform( f, j, transform );
+			pj *= tj;
+			drawCylinder( pi, pj, thickness );
+		}
+	}
+}
+
+void DrawingTool::drawPose( Skeleton* skeleton, PoseData* pose, float thickness, const math::transq& transform )
+{
+	unsigned int num_joints = pose->getNumJoints();
+	unsigned int i;
+	for( i= 0; i < num_joints; i++ )
+	{
+		Joint* child = skeleton->getJointByIndex( i );
+		math::position pi(0,0,0);
+		math::transq ti = pose->getGlobalTransform( skeleton, i, transform );
+		pi *= ti;
+
+		drawSphere( pi, thickness );
+
+		Joint* parent = child->getParent();
+		if( parent )
+		{
+			unsigned int j = parent->getIndex();
+			math::position pj(0,0,0);
+			math::transq tj = pose->getGlobalTransform( skeleton, j, transform );
 			pj *= tj;
 			drawCylinder( pi, pj, thickness );
 		}

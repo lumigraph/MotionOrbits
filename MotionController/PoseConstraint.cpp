@@ -157,6 +157,25 @@ JointConstraint* PoseConstraint::getConstraint( unsigned int joint )
 	}
 }
 
+bool PoseConstraint::removeConstraint( unsigned int joint )
+{
+	std::map< unsigned int, JointConstraint* >::iterator itor = joint_constraints.find( joint );
+	if( itor != joint_constraints.end() )
+	{
+		JointConstraint* joint_constraint = itor->second;
+		delete joint_constraint;
+
+		joint_constraints.erase( itor );
+
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+
+}
+
 unsigned int PoseConstraint::getNumConstraints()
 {
 	return (unsigned int)joint_constraints.size();

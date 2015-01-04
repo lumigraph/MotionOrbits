@@ -257,5 +257,14 @@
     <ClCompile Include="main_orbitplay.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="main_leapcontrol.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="main_ik.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="skeleton_taekwondo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

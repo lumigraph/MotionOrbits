@@ -22,6 +22,7 @@ public:
 
 	void drawText( float x, float y, void* font, char* string );
 	void drawPose( SkeletalMotion* motion, unsigned int f, float thickness, const math::transq& transform = math::identity_transq );
+	void drawPose( Skeleton* skeleton, PoseData* pose, float thickness, const math::transq& transform = math::identity_transq );
 
 	void strokeLine( float x0, float y0, float x1, float y1 );
 	void strokeCircle( float cx, float cy, float r );

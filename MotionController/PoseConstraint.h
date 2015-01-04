@@ -54,7 +54,9 @@ public:
 
 	bool getConstraint( unsigned int joint, JointConstraint** joint_constraint );
 	bool getConstraint( unsigned int joint, math::transq* transform );
-		
+	
+	bool removeConstraint( unsigned int joint );
+
 	unsigned int getNumConstraints();
 	JointConstraint* getConstraint( unsigned int joint );
 

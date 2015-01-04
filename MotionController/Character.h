@@ -28,11 +28,15 @@ public:
 
 	void whereToGo( double* to_x, double* to_z, double* to_angle, MotionGraph::Node* to_node = 0 );
 
+	Character* clone();
+	math::transq getGlobalTransform( unsigned int joint_index );
+	PoseData* getCurrentPose();
+
 	inline double getX()		{ return x; }
 	inline double getZ()		{ return z; }
 	inline double getAngle()	{ return angle; }
-
 	inline math::transq getTransform()	{ return transform; }
+
 	inline unsigned int getFrame()		{ return frame; }
 	inline unsigned int getStartFrame()	{ return f1; }
 	inline unsigned int getEndFrame()	{ return fN; }

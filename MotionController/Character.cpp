@@ -40,6 +40,76 @@ Character::~Character()
 	clearPath();
 }
 
+Character* Character::clone()
+{
+	Character* character = new Character;
+
+	character->skeletal_motion = this->skeletal_motion;
+	character->motion_graph = this->motion_graph;
+	
+	character->x = this->x;
+	character->z = this->z;
+	character->angle = this->angle;
+	character->transform = this->transform;
+
+	character->frame = this->frame;
+	character->f1 = this->f1;
+	character->fN = this->fN;
+
+	character->is_in_blend = this->is_in_blend;
+	character->blend_length = this->blend_length;
+	character->blend_frame = this->blend_frame;
+	if( this->blend_motion )
+	{
+		character->blend_motion = new SkeletalMotion;
+		character->blend_motion->copyFrom( this->blend_motion );
+	}
+	else
+	{
+		character->blend_motion = 0;
+	}
+
+	std::deque< MotionGraph::Node* >::iterator itor_n = this->node_path.begin();
+	while( itor_n != this->node_path.end() )
+	{
+		MotionGraph::Node* node = ( *itor_n ++ );
+		character->node_path.push_back( node );
+	}
+
+	std::deque< unsigned int >::iterator itor_s = this->segment_path.begin();
+	while( itor_s != this->segment_path.end() )
+	{
+		unsigned int segment = ( *itor_s ++ );
+		character->segment_path.push_back( segment );
+	}
+
+	return character;
+}
+
+math::transq Character::getGlobalTransform( unsigned int joint_index )
+{
+	if( is_in_blend )
+	{
+		return blend_motion->getGlobalTransform( blend_frame, joint_index, transform );
+	}
+	else
+	{
+		return skeletal_motion->getGlobalTransform( frame, joint_index, transform );
+	}
+}
+
+PoseData* Character::getCurrentPose()
+{
+	if( is_in_blend )
+	{
+		return blend_motion->getPoseData( blend_frame );
+	}
+	else
+	{
+		return skeletal_motion->getPoseData( frame );
+	}
+}
+
 void Character::embody( SkeletalMotion* m, MotionGraph* g )
 {
 	skeletal_motion = m;

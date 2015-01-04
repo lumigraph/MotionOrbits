@@ -25,7 +25,6 @@
 //#define PATH_BVH	"../data/boxing/boxing_shadow_m_edit.bvh"
 #define PATH_BVH	"../data/b-boy/B_boy.bvh"
 //#define PATH_BVH	"../data/basketball/basketball.bvh"
-//#define PATH_BVH	"../data/taekwondo/taebaek.bvh"
 
 //
 static void initialize();
@@ -76,31 +75,33 @@ static QTrackBall		track_ball;
 static SkeletalMotion	motion_data;
 static MotionEdit		motion_edit;
 
+static PoseData			original_pose;
+static PoseData			edited_pose;
+
+static math::vector	original_lh_pos(0,0,0);
+static math::vector	original_rh_pos(0,0,0);
+static math::vector	original_lf_pos(0,0,0);
+static math::vector	original_rf_pos(0,0,0);
+static math::vector		ik_disp(0,0,0);
+
 extern DrawingTool		drawing_tool;
-
-//
-static std::vector< MotionSegment* > segment_list;
-static unsigned int current_segment = 0;
-static const unsigned int MIN_SEGMENT_LENGTH = 10;
-
 
 //
 extern void setupBboySkeleton( Skeleton* s );
 extern void setupBoxingSkeleton( Skeleton* s );
 extern void setupCMUSkeleton( Skeleton* s );
 extern void setupBasketballSkeleton( Skeleton* s );
-extern void setupTaekwondoSkeleton( Skeleton* s );
 
 // experimenting with segmentation
 
-void startBVHPlayer( int* argcp, char** argv )
+void startInverseKinematics( int* argcp, char** argv )
 { 			
 	atexit( finalize );
 
 	glutInit( argcp, argv );
 	glutInitWindowSize( win_width, win_height );
 	glutInitDisplayMode( GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH | GLUT_STENCIL );
-    glutCreateWindow( "Motion Viewer" );
+    glutCreateWindow( "Inverse Kinematics" );
 
 	glewInit();
 
@@ -143,84 +144,33 @@ void startBVHPlayer( int* argcp, char** argv )
 	glutMainLoop();
 } 
 
-void segmentMotion()
-{
-	int num_frames = motion_data.getNumFrames();
-	if( num_frames > 0 )
-	{
-		bool* is_lf_contact = new bool[ num_frames ];
-		bool* is_rf_contact = new bool[ num_frames ];
-
-		//
-		Joint* lf = motion_data.getHumanJoint( Human::LEFT_FOOT );
-		Joint* rf = motion_data.getHumanJoint( Human::RIGHT_FOOT );
-		Joint* lt = motion_data.getHumanJoint( Human::LEFT_TOE );
-		Joint* rt = motion_data.getHumanJoint( Human::RIGHT_TOE );
-
-		double hl = 10, sl = 0.5;
-		int f;
-
-		for( f=0; f < num_frames-1; f++ )
-		{
-			math::position lf_p = motion_data.getPosition( f, lf->getIndex() );
-			math::position rf_p = motion_data.getPosition( f, rf->getIndex() );
-
-			math::vector lf_v0 = motion_data.getLinearVelocity( f, lf->getIndex() );
-			math::vector rf_v0 = motion_data.getLinearVelocity( f, rf->getIndex() );
-
-			math::vector lf_v1 = motion_data.getLinearVelocity( f+1, lf->getIndex() );
-			math::vector rf_v1 = motion_data.getLinearVelocity( f+1, rf->getIndex() );
-
-			//if( lf_a.length() < sl )
-			if( lf_p.y() < hl && lf_v0.y() < 0 && lf_v1.y() > 0 )
-			{
-				is_lf_contact[ f ] = true;
-			}
-			else
-			{
-				is_lf_contact[ f ] = false;
-			}
-
-			//if( rf_a.length() < sl )
-			if( rf_p.y() < hl && rf_v0.y() < 0 && rf_v1.y() > 0 )
-			{
-				is_rf_contact[ f ] = true;
-			}
-			else
-			{
-				is_rf_contact[ f ] = false;
-			}
-		}
-
-		//
-		unsigned int prev_f = 0;
-		unsigned int num_segments = 0;
-
-		for( f=1; f < num_frames; f++ )
-		{
-			if( ( is_rf_contact[ f-1 ] != is_rf_contact[ f ] || is_lf_contact[ f-1 ] != is_lf_contact[ f ] )
-				&& f-prev_f >= MIN_SEGMENT_LENGTH )
-			{
-				segment_list.push_back( new MotionSegment( prev_f, f-1 ) );
-				std::cout << "segment[ " << num_segments++ << " ]: " << f-prev_f << " frames ( " << prev_f << "~" << f-1 << " )\n";
-
-				prev_f = f;
-			}
-		}
-	}
-}
-
 void initialize()
 {
 	motion_data.importFromBVH( PATH_BVH );
 	
 	//setupBoxingSkeleton( motion_data.getSkeleton() );
 	setupBboySkeleton( motion_data.getSkeleton() );
+	//setupCMU14Skeleton( motion_data.getSkeleton() );
 	//setupBasketballSkeleton( motion_data.getSkeleton() );
-	//setupTaekwondoSkeleton( motion_data.getSkeleton() );
 
 	//
-	segmentMotion();
+	original_pose.initialize( motion_data.getNumJoints() );
+	original_pose.copy( motion_data.getPoseData( 0 ) );
+
+	edited_pose.initialize( motion_data.getNumJoints() );
+	edited_pose.copy( motion_data.getPoseData( 0 ) );
+
+	unsigned int right_hand = motion_data.getSkeleton()->getHumanJoint( Human::RIGHT_PALM )->getIndex();
+	unsigned int right_foot = motion_data.getSkeleton()->getHumanJoint( Human::RIGHT_FOOT )->getIndex();
+	unsigned int left_hand = motion_data.getSkeleton()->getHumanJoint( Human::LEFT_PALM )->getIndex();
+	unsigned int left_foot = motion_data.getSkeleton()->getHumanJoint( Human::LEFT_FOOT )->getIndex();
+
+	original_rh_pos = edited_pose.getGlobalTransform( motion_data.getSkeleton(), right_hand ).translation;
+	original_rf_pos = edited_pose.getGlobalTransform( motion_data.getSkeleton(), right_foot ).translation;
+	original_lh_pos = edited_pose.getGlobalTransform( motion_data.getSkeleton(), left_hand ).translation;
+	original_lf_pos = edited_pose.getGlobalTransform( motion_data.getSkeleton(), left_foot ).translation;
+
+	ik_disp.setValue(0,0,0);
 
 	//
 	float q[4] = { 0, 0, 0, 1 };
@@ -248,13 +198,6 @@ void initialize()
 
 void finalize()
 {
-	std::vector< MotionSegment* >::iterator itor_s = segment_list.begin();
-	while( itor_s != segment_list.end() )
-	{
-		MotionSegment* segment = ( *itor_s ++ );
-		delete segment;
-	}
-	segment_list.clear();
 }
 
 void reshape( int w, int h )
@@ -350,9 +293,16 @@ void display()
 	glScalef( 1, -1, 1 );
 
 //	setupLight();
+	math::vector edited_pos = original_rh_pos + ik_disp;
 
 	drawing_tool.setColor( 1.0, 0.4, 0.0, 1 );
-	drawing_tool.drawPose( &motion_data, f, thickness );
+	drawing_tool.drawPose( motion_data.getSkeleton(), &original_pose, thickness );
+
+	drawing_tool.setColor( 0.0, 0.4, 1.0, 1 );
+	drawing_tool.drawPose( motion_data.getSkeleton(), &edited_pose, thickness );
+
+	drawing_tool.setColor( 1, 0, 0, 1 );
+	drawing_tool.drawSphere( math::position( edited_pos.x(), edited_pos.y(), edited_pos.z() ), 5 );
 
 	glPopMatrix();
 
@@ -368,52 +318,17 @@ void display()
 	glDisable( GL_BLEND );
 
 	drawing_tool.setColor( 1.0, 0.4, 0.0, 1 );
-	drawing_tool.drawPose( &motion_data, f, thickness );
+	drawing_tool.drawPose( motion_data.getSkeleton(), &original_pose, thickness );
+
+	drawing_tool.setColor( 0.0, 0.4, 1.0, 1 );
+	drawing_tool.drawPose( motion_data.getSkeleton(), &edited_pose, thickness );
+
+	drawing_tool.setColor( 1, 0, 0, 1 );
+	drawing_tool.drawSphere( math::position( edited_pos.x(), edited_pos.y(), edited_pos.z() ), 5 );
 
 	char frame_str[128];
 	sprintf( frame_str, "Current frame: %5d", f );
-	//drawing_tool.drawText( 0, 0, GLUT_BITMAP_TIMES_ROMAN_24, frame_str );
-
-	//
-	Joint* lf = motion_data.getHumanJoint( Human::LEFT_FOOT );
-	Joint* rf = motion_data.getHumanJoint( Human::RIGHT_FOOT );
-	Joint* lt = motion_data.getHumanJoint( Human::LEFT_TOE );
-	Joint* rt = motion_data.getHumanJoint( Human::RIGHT_TOE );
-
-	math::vector lf_v = motion_data.getLinearVelocity( f, lf->getIndex() );
-	math::vector rf_v = motion_data.getLinearVelocity( f, rf->getIndex() );
-
-	math::position lf_p = motion_data.getPosition( f, lf->getIndex() );
-	math::position rf_p = motion_data.getPosition( f, rf->getIndex() );
-
-	math::vector lt_v = motion_data.getLinearVelocity( f, lt->getIndex() );
-	math::vector rt_v = motion_data.getLinearVelocity( f, rt->getIndex() );
-
-	math::position lt_p = motion_data.getPosition( f, lt->getIndex() );
-	math::position rt_p = motion_data.getPosition( f, rt->getIndex() );
-
-	std::cout << "Foot height: Left( " << lf_p.y() << ", " << lf_v.y() << "), Right( " << rf_p.y() << ", " << rf_v.y() << ")\n";
-
-//	double hl = 6, sl = 0.3;
-	double hl = 20, sl = 3.0;
-
-	if( lf_p.y() < hl && fabs(lf_v.y()) < sl && lt_p.y() < hl && fabs(lt_v.y()) < sl )
-	{
-		drawing_tool.drawText( 0, 0, GLUT_BITMAP_TIMES_ROMAN_24, "Left foot CONTACT" );
-	}
-	else
-	{
-		drawing_tool.drawText( 0, 0, GLUT_BITMAP_TIMES_ROMAN_24, "Left foot FLYING" );
-	}
-
-	if( rf_p.y() < hl && fabs(rf_v.y()) < sl && rt_p.y() < hl && fabs(rt_v.y()) < sl )
-	{
-		drawing_tool.drawText( 0, 30, GLUT_BITMAP_TIMES_ROMAN_24, "Right foot CONTACT" );
-	}
-	else
-	{
-		drawing_tool.drawText( 0, 30, GLUT_BITMAP_TIMES_ROMAN_24, "Right foot FLYING" );
-	}
+	drawing_tool.drawText( 0, 0, GLUT_BITMAP_TIMES_ROMAN_24, frame_str );
 
 	//
 	glutSwapBuffers();
@@ -431,20 +346,24 @@ void idle()
 	{
 		if( count % 10 == 0 )
 		{
-			current_frame ++;
-
-			//
-			MotionSegment* segment = segment_list[ current_segment ];
-			if( segment->getEndFrame() == current_frame )
-			{
-				current_segment ++;
-				if( current_segment == segment_list.size() )
-				{
-					current_segment = 0;
-				}
-//				is_playing = false;
-			}
+			unsigned int num_frames = motion_data.getNumFrames();
+			current_frame = ( current_frame+1 ) % num_frames;
 			
+			original_pose.copy( motion_data.getPoseData( current_frame ) );
+			edited_pose.copy( motion_data.getPoseData( current_frame ) ); 
+
+			unsigned int right_hand = motion_data.getSkeleton()->getHumanJoint( Human::RIGHT_PALM )->getIndex();
+			unsigned int right_foot = motion_data.getSkeleton()->getHumanJoint( Human::RIGHT_FOOT )->getIndex();
+			unsigned int left_hand = motion_data.getSkeleton()->getHumanJoint( Human::LEFT_PALM )->getIndex();
+			unsigned int left_foot = motion_data.getSkeleton()->getHumanJoint( Human::LEFT_FOOT )->getIndex();
+
+			original_rh_pos = edited_pose.getGlobalTransform( motion_data.getSkeleton(), right_hand ).translation;
+			original_rf_pos = edited_pose.getGlobalTransform( motion_data.getSkeleton(), right_foot ).translation;
+			original_lh_pos = edited_pose.getGlobalTransform( motion_data.getSkeleton(), left_hand ).translation;
+			original_lf_pos = edited_pose.getGlobalTransform( motion_data.getSkeleton(), left_foot ).translation;
+
+			ik_disp.setValue(0,0,0);
+
 			glutPostRedisplay();
 		}
 		count ++;
@@ -475,41 +394,42 @@ void keyboard( unsigned char key, int x, int y )
 
 void special( int key, int x, int y )
 {
+	math::vector dv(0,0,0);
+
 	switch(key){
-		case GLUT_KEY_LEFT:
-			{
-				current_frame -= 1;
-			}
-			break;
-		case GLUT_KEY_RIGHT:
-			{
-				current_frame += 1;
-			}
-			break;
-		case GLUT_KEY_UP:
-			{
-				current_frame -= 10;
+	case GLUT_KEY_LEFT:		dv = math::vector(+1,0,0);	break;
+	case GLUT_KEY_RIGHT:	dv = math::vector(-1,0,0);	break;
+	case GLUT_KEY_UP:		dv = math::vector(0,+1,0);	break;
+	case GLUT_KEY_DOWN:		dv = math::vector(0,-1,0);	break;
+	}
 
-				/*
-				if( view_distance > 50 )
-				{
-					view_distance -= 10;
-				}
-				*/
+	if( dv != math::vector(0,0,0) )
+	{
+		ik_disp += dv;
 
-			}
-			break;
-		case GLUT_KEY_DOWN:
-			{
-				current_frame += 10;
-				/*
-				if( view_distance < 1000 )
-				{
-					view_distance += 10;
-				}
-				*/
-			}
-			break;
+		unsigned int right_hand = motion_data.getSkeleton()->getHumanJoint( Human::RIGHT_PALM )->getIndex();
+		unsigned int right_foot = motion_data.getSkeleton()->getHumanJoint( Human::RIGHT_FOOT )->getIndex();
+		unsigned int left_hand = motion_data.getSkeleton()->getHumanJoint( Human::LEFT_PALM )->getIndex();
+		unsigned int left_foot = motion_data.getSkeleton()->getHumanJoint( Human::LEFT_FOOT )->getIndex();
+
+		math::transq rh_transq = edited_pose.getGlobalTransform( motion_data.getSkeleton(), right_hand );
+		math::transq rf_transq = edited_pose.getGlobalTransform( motion_data.getSkeleton(), right_foot );
+		math::transq lh_transq = edited_pose.getGlobalTransform( motion_data.getSkeleton(), left_hand );
+		math::transq lf_transq = edited_pose.getGlobalTransform( motion_data.getSkeleton(), left_foot );
+
+		PoseData temp_pose;
+		temp_pose.initialize( motion_data.getNumJoints() );
+		temp_pose.copy( &edited_pose );
+
+		PoseConstraint pose_constraint;
+		pose_constraint.addConstraint( Human::RIGHT_PALM, rh_transq.translation + dv );
+		pose_constraint.addConstraint( Human::RIGHT_FOOT, rf_transq );
+		pose_constraint.addConstraint( Human::LEFT_PALM, lh_transq );
+		pose_constraint.addConstraint( Human::LEFT_FOOT, lf_transq );
+
+		PoseIK pose_ik;
+		pose_ik.initialize();
+		pose_ik.ik_body( motion_data.getSkeleton(), &temp_pose, &edited_pose, &pose_constraint, 0.0 ); 
 	}
 
 	glutPostRedisplay();

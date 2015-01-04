@@ -52,8 +52,9 @@ void PoseIK::initialize()
 		RigidityCoeff[ j ] = 0.1f;
 	}
 	
-	IsDampingEnabled = false;
+	IsDampingEnabled = true;
 
+	/*
 	RigidityCoeff[ Human::PELVIS ] = 10.0f;
 	RigidityCoeff[ Human::UPPER_LEFT_LEG ] = 0.1f;
 	RigidityCoeff[ Human::UPPER_RIGHT_LEG ] = 0.1f;
@@ -63,6 +64,7 @@ void PoseIK::initialize()
 	RigidityCoeff[ Human::RIGHT_FOOT ] = 10.0f;
 	RigidityCoeff[ Human::LEFT_TOE ] = 100.0f;
 	RigidityCoeff[ Human::RIGHT_TOE ] = 100.0f;
+	*/
 }
 
 int PoseIK::ik_body( Skeleton* skeleton, PoseData* source_pose, PoseData* target_pose, PoseConstraint* pose_constraint, double roll )
