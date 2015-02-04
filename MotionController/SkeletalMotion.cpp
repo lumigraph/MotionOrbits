@@ -563,6 +563,29 @@ math::transq SkeletalMotion::getGlobalTransform( unsigned int frame_index, unsig
 	return global_transform;
 }
 
+math::transq SkeletalMotion::getLocalTransform( unsigned int frame_index, unsigned int joint_index )
+{
+	math::transq joint_transform = math::identity_transq;
+
+	Joint* joint = skeleton->getJointByIndex( joint_index );
+	while( joint && joint->getParent() )
+	{
+		math::vector joint_offset = joint->getOffset();
+		math::transq local_translation = math::translate_transq( joint_offset );
+		math::transq local_rotation = motion_data->getJointTransform( frame_index, joint_index );
+		math::transq local_transform = local_translation * local_rotation;
+		
+		joint_transform = local_transform * joint_transform;	// parent * child
+
+		joint = joint->getParent();
+		if( joint )
+		{
+			joint_index = joint->getIndex();
+		}
+	}
+	return joint_transform;
+}
+
 void SkeletalMotion::placeFromTrans( unsigned int f, math::transq t, double* x, double* z, double* angle )
 {
 	Joint* root = skeleton->getRootJoint();

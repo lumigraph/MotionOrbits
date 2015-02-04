@@ -41,8 +41,9 @@ public:
 	void calcMatrix( const math::quater& rotation, float* mat );
 	void calcMatrix( const math::matrix& matrix, float* mat );
 
-protected:
 	void applyColor();
+
+protected:
 	void transColor();
 
 	GLUquadric* quadric;

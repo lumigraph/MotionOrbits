@@ -155,10 +155,14 @@ unsigned int Character::extendPath( MotionGraph::Node* to_node )
 	unsigned int path_len = getNodePathLength();
 	unsigned int k = 0;
 
+	bool is_extended_from_scratch = false;
+
 	if( path_len == 0 )
 	{
 		node_path.push_back( to_node );
 		k = 1;
+
+		is_extended_from_scratch = true;
 	}
 	else
 	{
@@ -192,6 +196,17 @@ unsigned int Character::extendPath( MotionGraph::Node* to_node )
 	}
 	connectSegments();
 
+	if( is_extended_from_scratch  )
+	{
+		MotionGraph::Node* node = node_path[0];
+		unsigned int segment_index = segment_path[0];
+		std::pair<unsigned int, unsigned int> segment = node->getSegment( segment_index );
+
+		this->f1 = segment.first;
+		this->fN = segment.second;
+		this->frame = this->f1;
+	}
+
 	return k;
 }
 
@@ -217,7 +232,7 @@ unsigned int Character::extendPathRandomly( unsigned int k )
 
 			unsigned int node_index = rand() % num_nodes;
 			MotionGraph::Node* to_node = motion_graph->getNode( node_index );
-			node_path.push_back( to_node );
+			extendPath( to_node );
 		}
 		else
 		{
@@ -232,10 +247,9 @@ unsigned int Character::extendPathRandomly( unsigned int k )
 
 			unsigned int edge_index = rand() % num_edges;
 			MotionGraph::Node* to_node = ( *edges )[ edge_index ]->getToNode();
-			node_path.push_back( to_node );
+			extendPath( to_node );
 		}
 	}
-	connectSegments();
 
 	return i;
 }
@@ -308,7 +322,11 @@ bool Character::update()
 	}
 	else
 	{
-		proceedToNextNode();
+		bool is_proceeded = proceedToNextNode();
+		if( !is_proceeded )
+		{
+			return false;
+		}
 	}
 	updateBlendFrame();
 	updatePlacement();
@@ -321,11 +339,11 @@ void Character::proceedToNextFrame()
 	frame ++;
 }
 
-void Character::proceedToNextNode()
+bool Character::proceedToNextNode()
 {
 	if( !skeletal_motion || !motion_graph )
 	{
-		return;
+		return false;
 	}
 
 	unsigned int node_path_len = getNodePathLength();
@@ -333,7 +351,7 @@ void Character::proceedToNextNode()
 
 	if( node_path_len < 2 || segment_path_len < 2 )
 	{
-		return;
+		return false;
 	}
 
 	placeFromTrans( skeletal_motion, frame, transform, &x, &z, &angle );
@@ -350,6 +368,8 @@ void Character::proceedToNextNode()
 	frame = f1;
 
 	transFromPlace( skeletal_motion, frame, &transform, x, z, angle );
+
+	return true;
 }
 
 void Character::whereToGo( double* to_x, double* to_z, double* to_angle, MotionGraph::Node* to_node )

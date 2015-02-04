@@ -27,7 +27,7 @@
 #define MAX_ROOT_DISTANCE	10.0f
 */
 
-#define PATH_BVH	"../data/basketball/basketball.bvh"
+#define PATH_BVH	"../data/basketball/shooting_refined.bvh"
 #define PATH_GRAPH	"../data/basketball/graph.txt"
 
 #define MIN_SEGMENT_LENGTH	20
@@ -74,7 +74,6 @@ void startGraphBuilder( int* argcp, char** argv )
 //	setupBoxingSkeleton( motion_data.getSkeleton() );
 	setupBasketballSkeleton( motion_data.getSkeleton() );
 
-	/*
 	// (1) segmentation
 	std::cout << "[1] segmentation" << std::endl;
 
@@ -111,8 +110,8 @@ void startGraphBuilder( int* argcp, char** argv )
 
 	connected_graph.save( PATH_GRAPH );
 	return;
-	*/
 	
+	/*
 	MotionGraph connected_graph;
 	connected_graph.load( PATH_GRAPH );
 
@@ -127,7 +126,7 @@ void startGraphBuilder( int* argcp, char** argv )
 	// (6) export each circuit into a graph with the asceding order of its size
 	std::cout << "[6] exporting graph and cycles" << std::endl;
 	connected_graph.save( PATH_GRAPH );
-	
+	*/
 }
 
 void segmentMotion( SkeletalMotion* motion_data, std::vector< MotionSegment* >* segment_list )

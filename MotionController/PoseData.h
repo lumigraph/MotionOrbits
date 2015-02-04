@@ -22,6 +22,10 @@ public:
 	bool blend( PoseData* pose1, PoseData* pose2, double ratio );
 	bool blend( PoseData* pose1, math::transq& T1, PoseData* pose2, math::transq& T2, double ratio );
 
+	bool blend( std::vector< std::pair<PoseData*, math::transq> >* poses, std::vector<double>* ratios );
+	math::vector blendVects( std::vector< math::vector >* vects, std::vector<double>* ratios );
+	math::quater blendQuats( std::vector< math::quater >* quats, std::vector<double>* ratios ); 
+
 	bool addDisplacement( Skeleton* s, const math::vectorN& d );
 	void transform( const math::transq& t );
 

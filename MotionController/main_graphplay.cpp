@@ -33,7 +33,7 @@
 #define PATH_GRAPH	"../data/boxing/graph.txt"
 */
 
-#define PATH_BVH	"../data/basketball/basketball.bvh"
+#define PATH_BVH	"../data/basketball/shooting_refined.bvh"
 #define PATH_GRAPH	"../data/basketball/graph.txt"
 
 /*

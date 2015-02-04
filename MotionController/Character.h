@@ -56,7 +56,7 @@ public:
 
 protected:
 	void proceedToNextFrame();
-	void proceedToNextNode();
+	bool proceedToNextNode();
 
 	void placeFromTrans( SkeletalMotion* m, unsigned int f, math::transq t, double* x, double* z, double* angle );
 	void transFromPlace( SkeletalMotion* m, unsigned int f, math::transq* t, double x, double z, double angle );

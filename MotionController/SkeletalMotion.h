@@ -43,6 +43,7 @@ public:
 	void setPoseData( unsigned int frame_index, PoseData* pose_data );
 
 	math::transq getGlobalTransform( unsigned int frame_index, unsigned int joint_index, const math::transq& body_transform = math::identity_transq );
+	math::transq getLocalTransform( unsigned int frame_index, unsigned int joint_index );
 
 	math::position	getPosition( unsigned int f, unsigned int i );
 	math::quater	getOrientation( unsigned int f, unsigned int i );

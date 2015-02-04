@@ -39,13 +39,13 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Project\LeapSDK\include;C:\Project\LeapAvatar;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Project\LeapSDK\lib\x86;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Project\bullet3-master\bullet3-master\src;C:\Project\LeapSDK\include;C:\Project\LeapAvatar;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Project\bullet3-master\bullet3-master\bin;C:\Project\LeapSDK\lib\x86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Project\LeapSDK\include;C:\Project\LeapAvatar;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Project\LeapSDK\lib\x86;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Project\bullet3-master\bullet3-master\src;C:\Project\LeapSDK\include;C:\Project\LeapAvatar;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Project\bullet3-master\bullet3-master\bin;C:\Project\LeapSDK\lib\x86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -58,7 +58,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>leapd.lib;opengl32.lib;glut32.lib;glew32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>BulletDynamics_vs2010_debug.lib;BulletCollision_vs2010_debug.lib;LinearMath_vs2010_debug.lib;leapd.lib;opengl32.lib;glut32.lib;glew32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -76,7 +76,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>leap.lib;opengl32.lib;glut32.lib;glew32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>BulletDynamics_vs2010.lib;BulletCollision_vs2010.lib;LinearMath_vs2010.lib;leap.lib;opengl32.lib;glut32.lib;glew32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -94,11 +94,17 @@
     <ClInclude Include="..\mathclass\unit_vector.h" />
     <ClInclude Include="..\mathclass\vector.h" />
     <ClInclude Include="..\mathclass\vectorN.h" />
+    <ClInclude Include="BulletCompound.h" />
+    <ClInclude Include="BulletObject.h" />
+    <ClInclude Include="BulletWorld.h" />
     <ClInclude Include="Character.h" />
     <ClInclude Include="DrawingTool.h" />
+    <ClInclude Include="EvaluationLog.h" />
     <ClInclude Include="GraphSequence.h" />
     <ClInclude Include="Human.h" />
     <ClInclude Include="Joint.h" />
+    <ClInclude Include="LeapBrowser.h" />
+    <ClInclude Include="LeapListener.h" />
     <ClInclude Include="MotionCluster.h" />
     <ClInclude Include="MotionData.h" />
     <ClInclude Include="MotionEdit.h" />
@@ -108,8 +114,10 @@
     <ClInclude Include="PoseData.h" />
     <ClInclude Include="PoseDistance.h" />
     <ClInclude Include="PoseIK.h" />
+    <ClInclude Include="SearchTree.h" />
     <ClInclude Include="SkeletalMotion.h" />
     <ClInclude Include="Skeleton.h" />
+    <ClInclude Include="SpacePartition.h" />
     <ClInclude Include="trackball.h" />
   </ItemGroup>
   <ItemGroup>
@@ -135,17 +143,26 @@
     <ClCompile Include="..\mathclass\unit_vector.cpp" />
     <ClCompile Include="..\mathclass\vector.cpp" />
     <ClCompile Include="..\mathclass\vectorN.cpp" />
+    <ClCompile Include="BulletCompound.cpp" />
+    <ClCompile Include="BulletObject.cpp" />
+    <ClCompile Include="BulletWorld.cpp" />
     <ClCompile Include="Character.cpp" />
     <ClCompile Include="DrawingTool.cpp" />
+    <ClCompile Include="EvaluationLog.cpp" />
     <ClCompile Include="GraphSequence.cpp" />
     <ClCompile Include="Human.cpp" />
     <ClCompile Include="Joint.cpp" />
+    <ClCompile Include="LeapBrowser.cpp" />
+    <ClCompile Include="LeapListener.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="main_bvhplay.cpp" />
     <ClCompile Include="main_graphbuild.cpp" />
     <ClCompile Include="main_graphplay.cpp" />
+    <ClCompile Include="main_graphsearch.cpp" />
     <ClCompile Include="main_ik.cpp" />
+    <ClCompile Include="main_leapbrowse.cpp" />
     <ClCompile Include="main_leapcontrol.cpp" />
+    <ClCompile Include="main_leapgame.cpp" />
     <ClCompile Include="main_orbitbuild.cpp" />
     <ClCompile Include="main_orbitplay.cpp" />
     <ClCompile Include="MotionCluster.cpp" />
@@ -157,12 +174,14 @@
     <ClCompile Include="PoseData.cpp" />
     <ClCompile Include="PoseDistance.cpp" />
     <ClCompile Include="PoseIK.cpp" />
+    <ClCompile Include="SearchTree.cpp" />
     <ClCompile Include="SkeletalMotion.cpp" />
     <ClCompile Include="Skeleton.cpp" />
     <ClCompile Include="skeleton_basketball.cpp" />
     <ClCompile Include="skeleton_bboy.cpp" />
     <ClCompile Include="skeleton_boxing.cpp" />
     <ClCompile Include="skeleton_taekwondo.cpp" />
+    <ClCompile Include="SpacePartition.cpp" />
     <ClCompile Include="trackball.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -11,6 +11,7 @@
 #include <GL/glut.h>
 
 #include "Leap.h"
+#include "LeapListener.h"
 
 #include "DrawingTool.h"
 #include "trackball.h"
@@ -40,7 +41,7 @@
 */
 
 /*
-#define PATH_BVH	"../data/basketball/basketball.bvh"
+#define PATH_BVH	"../data/basketball/shooting_refined.bvh"
 #define PATH_GRAPH	"../data/basketball/graph.txt"
 #define PATH_ORBIT	"../data/basketball/orbit.txt"
 */
@@ -51,78 +52,6 @@
 
 //
 CRITICAL_SECTION cs;
-
-using namespace Leap;
-
-class SampleListener : public Listener {
-  public:
-    virtual void onInit(const Controller&);
-    virtual void onConnect(const Controller&);
-    virtual void onDisconnect(const Controller&);
-    virtual void onExit(const Controller&);
-    virtual void onFrame(const Controller&);
-    virtual void onFocusGained(const Controller&);
-    virtual void onFocusLost(const Controller&);
-    virtual void onDeviceChange(const Controller&);
-    virtual void onServiceConnect(const Controller&);
-    virtual void onServiceDisconnect(const Controller&);
-
-  private:
-};
-
-const std::string fingerNames[] = {"Thumb", "Index", "Middle", "Ring", "Pinky"};
-const std::string boneNames[] = {"Metacarpal", "Proximal", "Middle", "Distal"};
-const std::string stateNames[] = {"STATE_INVALID", "STATE_START", "STATE_UPDATE", "STATE_END"};
-
-void SampleListener::onInit(const Controller& controller) {
-  std::cout << "Initialized" << std::endl;
-}
-
-void SampleListener::onConnect(const Controller& controller) {
-  std::cout << "Connected" << std::endl;
- // controller.enableGesture(Gesture::TYPE_CIRCLE);
-  controller.enableGesture(Gesture::TYPE_KEY_TAP);
- // controller.enableGesture(Gesture::TYPE_SCREEN_TAP);
- // controller.enableGesture(Gesture::TYPE_SWIPE);
-}
-
-void SampleListener::onDisconnect(const Controller& controller) {
-  // Note: not dispatched when running in a debugger.
-  std::cout << "Disconnected" << std::endl;
-}
-
-void SampleListener::onExit(const Controller& controller) {
-  std::cout << "Exited" << std::endl;
-}
-
-void SampleListener::onFrame(const Controller& controller) {
-}
-
-void SampleListener::onFocusGained(const Controller& controller) {
-  std::cout << "Focus Gained" << std::endl;
-}
-
-void SampleListener::onFocusLost(const Controller& controller) {
-  std::cout << "Focus Lost" << std::endl;
-}
-
-void SampleListener::onDeviceChange(const Controller& controller) {
-  std::cout << "Device Changed" << std::endl;
-  const DeviceList devices = controller.devices();
-
-  for (int i = 0; i < devices.count(); ++i) {
-    std::cout << "id: " << devices[i].toString() << std::endl;
-    std::cout << "  isStreaming: " << (devices[i].isStreaming() ? "true" : "false") << std::endl;
-  }
-}
-
-void SampleListener::onServiceConnect(const Controller& controller) {
-  std::cout << "Service Connected" << std::endl;
-}
-
-void SampleListener::onServiceDisconnect(const Controller& controller) {
-  std::cout << "Service Disconnected" << std::endl;
-}
 
 
 //
@@ -180,7 +109,9 @@ static OrbitGraph::Edge* current_transit = 0;
 static unsigned int moving_mode = CYCLING_IN_ORBIT;
 
 //
-static SampleListener listener;
+using namespace Leap;
+
+static LeapListener listener;
 static Controller controller;
 
 //
@@ -214,6 +145,10 @@ static unsigned int	selected_frame = 0;
 
 static std::vector< math::vector >* selected_transition_trajectory = 0;
 static std::vector< std::pair<math::transq, PoseData*> >* selected_transition_poses = 0;
+
+//
+static const unsigned int MAX_TRAIL_LENGTH = 1024;
+static std::deque< math::position > movement_trail;
 
 
 //
@@ -413,6 +348,20 @@ static void drawHands()
 	}
 }
 
+static void drawTrail()
+{
+	drawing_tool.setColor( 0, 0, 0, 1 );
+
+	std::deque< math::position >::iterator itor_t = movement_trail.begin();
+	while( itor_t != movement_trail.end() )
+	{
+		math::position p = ( *itor_t ++ );
+		p.set_y( 1 );
+
+		drawing_tool.drawSphere( p, 2 );
+	}
+}
+
 static void drawFloor()
 {
 	drawing_tool.setColor( 0.8, 0.8, 0.8, 0.4 );
@@ -515,7 +464,7 @@ static void drawPinchedInfo()
 	}
 	else
 	{
-		drawing_tool.setColor( 0.5, 0.5, 0.5, 0.5 );
+		drawing_tool.setColor( 1, 0, 0, 0.5 );
 
 		std::map< OrbitGraph::Node*, std::vector< std::pair<math::transq, PoseData*> >* >::iterator itor_p = transition_poses.find( selected_orbit );
 		if( itor_p != transition_poses.end() )
@@ -534,7 +483,7 @@ static void drawPinchedInfo()
 		//
 		if( selected_transition_poses )
 		{
-			drawing_tool.setColor( 1, 0, 0, 0.5 );
+			drawing_tool.setColor( 0.5, 0.5, 0.5, 0.5 );
 
 			unsigned int f = 0;
 
@@ -546,9 +495,13 @@ static void drawPinchedInfo()
 				itor_p ++;
 				f ++;
 
+				if( f == 1 )
+				{
+//					drawing_tool.drawPose( motion_data.getSkeleton(), pose, thickness, T );
+				}
 				if( itor_p == selected_transition_poses->end() )
 				{
-					drawing_tool.drawPose( motion_data.getSkeleton(), pose, thickness, T );
+//					drawing_tool.drawPose( motion_data.getSkeleton(), pose, thickness, T );
 				}
 			}
 		}
@@ -720,6 +673,7 @@ void display()
 	}
 
 	//
+	drawTrail();
 	drawHands();
 
 	//
@@ -830,7 +784,7 @@ static void collectCycle( float x, float z, float angle, unsigned int joint_inde
 
 		if( joint_index != root_index && !is_moving )
 		{
-			ch.place( x, z, angle );
+		//	ch.place( x, z, angle );
 		}
 		
 		node = ch.getPathNode( 0 );
@@ -1028,7 +982,7 @@ static void inPinch( Vector position )
 			f ++;
 		}
 	}
-	if( nearest_dist < 10.0f )
+	if( nearest_orbit /*nearest_dist < 10.0f*/ )
 	{
 		if( selected_orbit != nearest_orbit || selected_frame != nearest_frame )
 		{
@@ -1044,7 +998,7 @@ static void inPinch( Vector position )
 			float z = pinched_character->getZ();
 			float angle = pinched_character->getAngle();
 
-			collectCycle( x, z, angle, pinched_joint, selected_orbit, selected_transition_trajectory, selected_transition_poses, true, selected_frame ); 
+			collectCycle( x, z, angle, pinched_joint, selected_orbit, selected_transition_trajectory, selected_transition_poses, true, 0 );	//selected_frame ); 
 			
 			//
 			std::map< OrbitGraph::Node*, std::vector< std::pair<math::transq, PoseData*> >* >::iterator itor_pl = transition_poses.find( selected_orbit );
@@ -1407,6 +1361,16 @@ void idle()
 			else
 			{
 				character.update();
+
+				//
+				double x = character.getX();
+				double z = character.getZ();
+				movement_trail.push_back( math::position(x,0,z) );
+
+				if( movement_trail.size() > MAX_TRAIL_LENGTH )
+				{
+					movement_trail.pop_front();
+				}
 			}
 		}
 		count ++;

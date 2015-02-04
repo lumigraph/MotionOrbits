@@ -23,9 +23,10 @@
 #include "PoseIK.h"
 
 //#define PATH_BVH	"../data/boxing/boxing_shadow_m_edit.bvh"
-#define PATH_BVH	"../data/b-boy/B_boy.bvh"
-//#define PATH_BVH	"../data/basketball/basketball.bvh"
+//#define PATH_BVH	"../data/b-boy/B_boy.bvh"
+#define PATH_BVH	"../data/basketball/shooting.bvh"
 //#define PATH_BVH	"../data/taekwondo/taebaek.bvh"
+//#define PATH_BVH	"../data/edited_motion.bvh"
 
 //
 static void initialize();
@@ -215,12 +216,12 @@ void initialize()
 	motion_data.importFromBVH( PATH_BVH );
 	
 	//setupBoxingSkeleton( motion_data.getSkeleton() );
-	setupBboySkeleton( motion_data.getSkeleton() );
+	//setupBboySkeleton( motion_data.getSkeleton() );
 	//setupBasketballSkeleton( motion_data.getSkeleton() );
 	//setupTaekwondoSkeleton( motion_data.getSkeleton() );
 
 	//
-	segmentMotion();
+	//segmentMotion();
 
 	//
 	float q[4] = { 0, 0, 0, 1 };
@@ -374,7 +375,7 @@ void display()
 	sprintf( frame_str, "Current frame: %5d", f );
 	//drawing_tool.drawText( 0, 0, GLUT_BITMAP_TIMES_ROMAN_24, frame_str );
 
-	//
+	/*
 	Joint* lf = motion_data.getHumanJoint( Human::LEFT_FOOT );
 	Joint* rf = motion_data.getHumanJoint( Human::RIGHT_FOOT );
 	Joint* lt = motion_data.getHumanJoint( Human::LEFT_TOE );
@@ -414,6 +415,7 @@ void display()
 	{
 		drawing_tool.drawText( 0, 30, GLUT_BITMAP_TIMES_ROMAN_24, "Right foot FLYING" );
 	}
+	*/
 
 	//
 	glutSwapBuffers();
@@ -433,7 +435,12 @@ void idle()
 		{
 			current_frame ++;
 
-			//
+			int num_frames = motion_data.getNumFrames();
+			if( current_frame >= num_frames-1 )
+			{
+				is_playing = false;
+			}
+			/*
 			MotionSegment* segment = segment_list[ current_segment ];
 			if( segment->getEndFrame() == current_frame )
 			{
@@ -444,6 +451,7 @@ void idle()
 				}
 //				is_playing = false;
 			}
+			*/
 			
 			glutPostRedisplay();
 		}

@@ -48,6 +48,9 @@ public:
 		inline std::vector< Edge* >*	getNextEdges()	{ return &next_edges; }
 		inline std::vector< Edge* >*	getPrevEdges()	{ return &prev_edges; }
 
+		inline Node* getNextNode( unsigned int i ) { if( i < (int)next_edges.size() ) return next_edges[i]->getToNode(); else return 0; }
+		inline Node* getPrevNode( unsigned int i ) { if( i < (int)prev_edges.size() ) return prev_edges[i]->getFromNode(); else return 0; }
+
 		inline bool removeNextEdge( Edge* edge )	
 		{
 			std::vector< Edge* >::iterator itor_next = next_edges.begin();
